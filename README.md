@@ -1,1 +1,192 @@
-# NewEduCalculator
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EduCalc | Student Academic Calculator</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f1f3ff;color:#202943;font-family:Arial,sans-serif}
+header{background:linear-gradient(135deg,#283593,#536dfe);color:white;text-align:center;padding:28px 15px}
+header h1{margin:0;font-size:32px}
+header p{margin:10px 0 0}
+nav{display:flex;gap:8px;padding:12px;overflow-x:auto;background:white;position:sticky;top:0;z-index:2}
+nav button{white-space:nowrap}
+button{border:0;border-radius:9px;background:#3949ab;color:white;padding:12px 15px;font-size:14px;cursor:pointer}
+nav button{background:#e5e9ff;color:#283593}
+nav button.active{background:#283593;color:white}
+main{max-width:760px;margin:auto;padding:14px}
+section{background:white;padding:18px;border-radius:16px;margin-bottom:16px;box-shadow:0 3px 15px #20294310}
+h2{color:#283593;margin-top:0}
+label{display:block;font-weight:bold;margin:12px 0 6px}
+input{width:100%;padding:12px;border:1px solid #ccd2df;border-radius:9px;font-size:16px}
+.subject{background:#f7f8fc;border:1px solid #e1e5ef;border-radius:12px;padding:12px;margin:12px 0}
+.subject-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.remove{background:#ffebee;color:#b71c1c;padding:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.result{background:#eef1ff;padding:14px;border-radius:10px;margin-top:14px;font-weight:bold;overflow-wrap:anywhere}
+.muted{color:#687386;font-size:14px;line-height:1.5}
+[hidden]{display:none!important}
+.item{padding:12px 0;border-bottom:1px solid #e5e7eb}
+footer{text-align:center;color:#687386;padding:20px;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+<h1>🎓 EduCalc</h1>
+<p>Your all-in-one student academic calculator</p>
+</header>
+<nav>
+<button class="active" onclick="showPage('sgpa',this)">SGPA</button>
+<button onclick="showPage('cgpa',this)">CGPA</button>
+<button onclick="showPage('marks',this)">Marks</button>
+<button onclick="showPage('attendance',this)">Attendance</button>
+<button onclick="showPage('history',this)">Saved Results</button>
+</nav>
+<main>
+<section id="sgpa">
+<h2>📚 SGPA Calculator</h2>
+<p class="muted">Enter subject credits and grade points from 0 to 10.</p>
+<label>Semester name</label>
+<input id="semester" placeholder="e.g. Semester 1">
+<div id="subjects"></div>
+<div class="actions">
+<button onclick="addSubject()">+ Add Subject</button>
+<button onclick="calculateSGPA()">Calculate SGPA</button>
+</div>
+<div id="sgpaResult" class="result" hidden></div>
+<button onclick="saveSemester()" style="margin-top:12px">Save Semester Result</button>
+</section>
+<section id="cgpa" hidden>
+<h2>🎯 CGPA Calculator</h2>
+<p class="muted">Enter each semester's SGPA and total credits.</p>
+<div id="semesters"></div>
+<div class="actions">
+<button onclick="addSemester()">+ Add Semester</button>
+<button onclick="calculateCGPA()">Calculate CGPA</button>
+</div>
+<div id="cgpaResult" class="result" hidden></div>
+</section>
+<section id="marks" hidden>
+<h2>📝 Marks & Percentage</h2>
+<label>Student name (optional)</label>
+<input id="studentName" placeholder="Your name">
+<label>Marks obtained</label>
+<input id="obtained" type="number" min="0" placeholder="e.g. 420">
+<label>Total possible marks</label>
+<input id="total" type="number" min="1" placeholder="e.g. 500">
+<button onclick="calculateMarks()" style="margin-top:14px">Calculate Percentage</button>
+<div id="marksResult" class="result" hidden></div>
+</section>
+<section id="attendance" hidden>
+<h2>📅 Attendance Calculator</h2>
+<label>Classes attended</label>
+<input id="attended" type="number" min="0" placeholder="e.g. 36">
+<label>Total classes conducted</label>
+<input id="classes" type="number" min="1" placeholder="e.g. 40">
+<label>Target attendance (%)</label>
+<input id="target" type="number" min="1" max="100" value="75">
+<button onclick="calculateAttendance()" style="margin-top:14px">Calculate Attendance</button>
+<div id="attendanceResult" class="result" hidden></div>
+</section>
+<section id="history" hidden>
+<h2>💾 Saved Semester Results</h2>
+<p class="muted">Saved in this browser on this device.</p>
+<div id="saved"></div>
+</section>
+</main>
+<footer>EduCalc • Made for students</footer>
+<script>
+let subjectCount=0,semesterCount=0,lastSGPA=null;
+let history=[];
+try{history=JSON.parse(localStorage.getItem('educalc-history')||'[]');if(!Array.isArray(history))history=[]}catch(e){history=[]}
+
+function showPage(id,button){
+document.querySelectorAll('main section').forEach(s=>s.hidden=true);
+document.getElementById(id).hidden=false;
+document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+button.classList.add('active');
+if(id==='history')renderHistory();
+}
+function addSubject(){
+subjectCount++;
+const row=document.createElement('div');row.className='subject';
+row.innerHTML=`<div class="subject-head"><strong>Subject ${subjectCount}</strong><button class="remove" type="button">Remove</button></div>
+<label>Subject name</label><input class="subjectName" placeholder="e.g. Mathematics">
+<label>Credits</label><input class="credit" type="number" min="0.01" step="any" placeholder="e.g. 4">
+<label>Grade points (0–10)</label><input class="grade" type="number" min="0" max="10" step="any" placeholder="e.g. 9">`;
+row.querySelector('.remove').onclick=()=>row.remove();
+document.getElementById('subjects').appendChild(row);
+lastSGPA=null;
+}
+function calculateSGPA(){
+const rows=[...document.querySelectorAll('#subjects .subject')],out=document.getElementById('sgpaResult');
+if(!rows.length){out.textContent='Add at least one subject.';out.hidden=false;return}
+let weighted=0,credits=0;
+for(const r of rows){
+const cv=r.querySelector('.credit').value,gv=r.querySelector('.grade').value,c=Number(cv),g=Number(gv);
+if(cv===''||gv===''||!Number.isFinite(c)||!Number.isFinite(g)||c<=0||g<0||g>10){out.textContent='Enter valid credits and grade points for every subject.';out.hidden=false;return}
+weighted+=c*g;credits+=c;
+}
+lastSGPA=weighted/credits;out.textContent=`SGPA: ${lastSGPA.toFixed(2)} • Total credits: ${credits}`;out.hidden=false;
+}
+function saveSemester(){
+const out=document.getElementById('sgpaResult');
+if(lastSGPA===null){out.textContent='Calculate SGPA first.';out.hidden=false;return}
+const name=document.getElementById('semester').value.trim();
+if(!name){out.textContent='Enter a semester name first.';out.hidden=false;return}
+const credits=[...document.querySelectorAll('#subjects .credit')].reduce((s,i)=>s+Number(i.value),0);
+history.push({name,sgpa:lastSGPA,credits,date:new Date().toLocaleDateString()});
+try{localStorage.setItem('educalc-history',JSON.stringify(history));out.textContent='Semester result saved!';lastSGPA=null}
+catch(e){history.pop();out.textContent='Unable to save in this browser.'}
+}
+function addSemester(){
+semesterCount++;
+const row=document.createElement('div');row.className='subject';
+row.innerHTML=`<div class="subject-head"><strong>Semester ${semesterCount}</strong><button type="button" class="remove">Remove</button></div>
+<label>SGPA</label><input class="semSGPA" type="number" min="0" max="10" step="any" placeholder="e.g. 8.5">
+<label>Total semester credits</label><input class="semCredits" type="number" min="0.01" step="any" placeholder="e.g. 22">`;
+row.querySelector('.remove').onclick=()=>row.remove();
+document.getElementById('semesters').appendChild(row);
+}
+function calculateCGPA(){
+const rows=[...document.querySelectorAll('#semesters .subject')],out=document.getElementById('cgpaResult');
+if(!rows.length){out.textContent='Add at least one semester.';out.hidden=false;return}
+let weighted=0,credits=0;
+for(const r of rows){
+const sv=r.querySelector('.semSGPA').value,cv=r.querySelector('.semCredits').value,s=Number(sv),c=Number(cv);
+if(sv===''||cv===''||!Number.isFinite(s)||!Number.isFinite(c)||s<0||s>10||c<=0){out.textContent='Enter valid SGPA (0–10) and credits.';out.hidden=false;return}
+weighted+=s*c;credits+=c;
+}
+out.textContent=`CGPA: ${(weighted/credits).toFixed(2)} • Total credits: ${credits}`;out.hidden=false;
+}
+function calculateMarks(){
+const ov=document.getElementById('obtained').value,tv=document.getElementById('total').value,o=Number(ov),t=Number(tv),out=document.getElementById('marksResult');
+if(ov===''||tv===''||!Number.isFinite(o)||!Number.isFinite(t)||t<=0||o<0||o>t){out.textContent='Enter valid marks; obtained marks cannot exceed total.';out.hidden=false;return}
+out.textContent=`Percentage: ${(o/t*100).toFixed(2)}%`;out.hidden=false;
+}
+function calculateAttendance(){
+const av=document.getElementById('attended').value,tv=document.getElementById('classes').value,gv=document.getElementById('target').value,a=Number(av),t=Number(tv),g=Number(gv),out=document.getElementById('attendanceResult');
+if(av===''||tv===''||gv===''||t<=0||a<0||a>t||g<=0||g>100){out.textContent='Enter valid class counts and a target between 1% and 100%.';out.hidden=false;return}
+const pct=a/t*100;let msg=`Attendance: ${pct.toFixed(2)}%. `;
+if(pct>=g){msg+='Your target is met. ';if(g<100)msg+=`You can miss up to ${Math.max(0,Math.floor((a-g*t/100)/(g/100)))} consecutive classes and remain at your target.`}
+else if(g<100)msg+=`Attend the next ${Math.ceil((g*t/100-a)/(1-g/100))} consecutive classes to reach ${g}%.`;
+else msg+='Attend every future class to reach 100%.';
+out.textContent=msg;out.hidden=false;
+}
+function renderHistory(){
+const box=document.getElementById('saved');box.replaceChildren();
+if(!history.length){box.textContent='No saved semester results yet.';return}
+history.forEach((item,index)=>{
+const row=document.createElement('div');row.className='item';
+const title=document.createElement('strong');title.textContent=item.name;
+const details=document.createElement('p');details.textContent=`SGPA: ${Number(item.sgpa).toFixed(2)} • Credits: ${item.credits||'Not recorded'} • ${item.date}`;
+const del=document.createElement('button');del.className='remove';del.textContent='Delete';
+del.onclick=()=>{history.splice(index,1);try{localStorage.setItem('educalc-history',JSON.stringify(history));renderHistory()}catch(e){alert('Could not update saved results.')}};
+row.append(title,details,del);box.appendChild(row);
+});
+}
+addSubject();addSubject();addSemester();addSemester();
+</script>
+</body>
+</html>
